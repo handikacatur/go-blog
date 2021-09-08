@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Simple UI Login</title>
+	<!-- Bootstrap 5 Alpha CSS CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+	<!-- Font Awesome -->
+	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+    <title>Go Blog | Login</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Lato&display=swap');
+
+        body {
+            background-color: #0278ae;
+            font-family: 'Lato', sans-serif;
+        }
+
+        .login-content {
+            max-width: 450px;
+            width: 100%;
+            height: 550px;
+            z-index: 1;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            margin-left: -200px;
+            margin-top: -286px;
+            border-radius: 8px;
+        }
+
+        .logo {
+            width: 128px;
+            height: 128px;
+            margin: 5px;
+        }
+
+        .text-logo {
+            text-align: center;
+            font-weight: bold;
+            font-size: 32px;
+        }
+
+        .form-control {
+            width: 18rem;
+            height: 3rem;
+            left: 65px;
+            position: relative;
+            border-radius: 5px;
+            background-color: #dfdfdf;
+        }
+
+        .btn {
+            font-size: 22px;
+            background-color: #0278ae;
+            border: none;
+            width: 18rem;
+            height: 3rem;
+            border-radius: 5px;
+        }
+
+        .btn:hover {
+            background-color: #035a83;
+        }
+
+        .nomember {
+            background-color: #e4dede;
+            padding: 10px;
+            padding-top: 20px;
+            border-radius: 0px 0px 5px 5px;
+        }
+
+        .nomember a{
+            text-decoration: none;
+        }
+
+        .forgot {
+            position: relative;
+            right: -20%;
+        }
+
+        .forgot a {
+            text-decoration: none;
+            font-size: 14px;
+            color: rgb(158, 163, 240);
+        }
+
+        .copyright {
+            color: white;
+            padding: 15px;
+        }
+
+        /*support google chrome*/
+        .form-control::-webkit-input-placeholder{
+            color: #00000036;
+        }
+
+        /*support mozilla*/
+        .form-control:-moz-input-placeholder{
+            color: red;
+        }
+
+        /*support internet explorer*/
+        .form-control:-ms-input-placeholder{
+            color: red;
+        }
+
+        .form-control.error {
+            border: 1px solid rgb(214, 81, 81) !important;
+        }
+
+        .form-text {
+            height: 0;
+            overflow: hidden;
+            color: rgb(214, 81, 81);
+        }
+
+        .form-text.error {
+            animation: fadeIn .3s forwards;
+        }
+
+        @keyframes fadeIn {
+            0% {
+                height: 0px;
+            }
+            100% {
+                height: 25px;
+            }
+        }
+    </style>
+</head>
+<body>
+	<div class="container">
+		<div class="row">
+			<div class="col-sm-12 col-md-12 col-lg-12">
+				<div class="card login-content shadow-lg border-0">
+					<div class="card-body">
+						<div class="text-center">
+							<img class="logo" src="https://cdn3.iconfinder.com/data/icons/galaxy-open-line-gradient-i/200/account-256.png">
+						</div>
+					<h3 class="text-logo">Sign In</h3>
+					<br>
+					<form class="text-center" action="/auth/login" method="POST">
+                        <div class="mb-3">
+                            <input id="username" class="form-control border-0 {{if .username}} {{.status}} {{end}}" type="text" name="username" placeholder="Username" aria-describedby="usernameHelp" value="{{.usernameValue}}">
+                            <div id="usernameHelp" class="form-text {{if .username}} {{.status}} {{end}}">{{.username}}</div>
+                        </div>
+                        <div class="mb-3">
+                            <input id="password" class="form-control border-0 {{if .password}} {{.status}} {{end}}" type="password" name="password" placeholder="Password" aria-describedby="passwrodHelp" value="{{.passwordValue}}">
+                            <div id="passwordHelp" class="form-text {{if .password}} {{.status}} {{end}} ">{{.password}}</div>
+                        </div>
+						<br>
+						<button class="btn btn-primary btn-sm border-0" type="submit" name="submit">Sign In</button>
+						<p class="forgot"><a href="">Forgot Password?</a></p>
+					</form>
+					</div>
+					<div class="nomember">
+						<p class="text-center">Not a member? <a href="/auth/sign-up">Create an Account</a></p>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<!-- Bootstrap 5 Alpha JavaScript Bundle CDN -->
+	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-alpha3/dist/js/bootstrap.bundle.min.js" integrity="sha384-popRpmFF9JQgExhfw5tZT4I9/CI5e2QcuUZPOVXb1m7qUmeR2b50u+YFEYe1wgzy" crossorigin="anonymous"></script>
+</body>
+</html>
