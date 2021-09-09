@@ -69,7 +69,11 @@ func GetLogin(c *fiber.Ctx) error {
 	tokenString := c.Cookies("token")
 
 	if len(tokenString) > 0 {
-		return c.Redirect("/")
+		claims := models.CustomClaim{}
+		claims, err := claims.GetClaim(tokenString)
+		if err == nil {
+			return c.Redirect("/")
+		}
 	}
 
 	return c.Render("login", fiber.Map{})

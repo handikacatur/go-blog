@@ -12,6 +12,39 @@ import (
 	"github.com/handikacatur/go-blog/utils"
 )
 
+type Data struct {
+	Text string
+	File string
+}
+
+type Block struct {
+	Type string
+	Data Data
+}
+
+type CleanData struct {
+	Blocks []Block
+}
+
+func htmlToClean(data string) CleanData {
+	splitData := strings.Split(data, "\n")
+	cleanData := new(CleanData)
+	for _, data := range splitData {
+		if strings.Contains(data, "<p>") {
+			newData := Data{Text: data[3 : len(data)-4]}
+			newBlock := Block{Type: "paragraph", Data: newData}
+			cleanData.Blocks = append(cleanData.Blocks, newBlock)
+		} else if strings.Contains(data, "<img") {
+			src := strings.Split(data, " ")[1]
+			newData := Data{File: src[5 : len(src)-1]}
+			newBlock := Block{Type: "image", Data: newData}
+			cleanData.Blocks = append(cleanData.Blocks, newBlock)
+		}
+	}
+
+	return *cleanData
+}
+
 func GetMyPosts(c *fiber.Ctx) error {
 	db := database.DBConn
 
@@ -32,7 +65,7 @@ func GetMyPosts(c *fiber.Ctx) error {
 
 	var user models.User
 	if err := db.Where(&models.User{Username: claims.Username}).Preload("Posts").Find(&user).Error; err != nil {
-		return c.SendStatus(fiber.StatusBadRequest)
+		return c.Redirect("/post/my-post/create")
 	}
 
 	type PostData struct {
@@ -76,8 +109,22 @@ func GetPost(c *fiber.Ctx) error {
 	reqId := c.Params("id")
 
 	var post models.Post
+	var user models.User
 	if err := db.First(&post, reqId).Error; err != nil {
 		return c.SendStatus(fiber.StatusNotFound)
+	}
+
+	// if err := db.Model(&user).Where("Username = ", post.UserID).Association("Posts").Find(&post); err != nil {
+	// 	fmt.Println(err)
+	// }
+
+	if err := db.Select("Username").Where("ID = ?", post.UserID).Find(&user).Error; err != nil {
+		return c.SendStatus(fiber.StatusUnauthorized)
+	}
+
+	var authorized bool
+	if user.Username != claims.Username {
+		authorized = true
 	}
 
 	// Change date format to January 2, 2006
@@ -85,20 +132,19 @@ func GetPost(c *fiber.Ctx) error {
 	formatDate := t.Format("January 2, 2006")
 
 	return c.Render("post", fiber.Map{
-		"title":    post.Title,
-		"subtitle": post.Subtitle,
-		"cover":    post.Cover,
-		"author":   claims.Username,
-		"date":     formatDate,
-		"data":     template.HTML(post.Data),
+		"id":         post.ID,
+		"title":      post.Title,
+		"subtitle":   post.Subtitle,
+		"cover":      post.Cover,
+		"author":     claims.Username,
+		"date":       formatDate,
+		"data":       template.HTML(post.Data),
+		"authorized": authorized,
 	})
 }
 
 func GetCreatePost(c *fiber.Ctx) error {
-
-	return c.Render("create_post", fiber.Map{
-		"title": "Hello world",
-	})
+	return c.Render("create_post", fiber.Map{})
 }
 
 func CreatePost(c *fiber.Ctx) error {
@@ -157,4 +203,93 @@ func CreatePost(c *fiber.Ctx) error {
 
 	db.Create(post)
 	return c.Redirect("/")
+}
+
+func GetUpdatePost(c *fiber.Ctx) error {
+	db := database.DBConn
+
+	tokenString := c.Cookies("token")
+
+	claims := models.CustomClaim{}
+
+	claims, err := claims.GetClaim(tokenString)
+	if err != nil {
+		ClearCookie(c)
+		return c.Redirect("/auth/login")
+	}
+
+	// Get request parameter
+	reqId := c.Params("id")
+
+	var post models.Post
+	var user models.User
+	if err := db.Where("ID = ?", reqId).First(&post).Error; err != nil {
+		fmt.Println(err)
+	}
+
+	if err := db.Where("ID = ?", post.UserID).First(&user).Error; err != nil {
+		fmt.Println(err)
+	}
+
+	if claims.Username != user.Username {
+		return c.Redirect(fmt.Sprintf("/post/show/%s", reqId))
+	}
+
+	cleanData := htmlToClean(post.Data)
+
+	return c.Render("create_post", fiber.Map{
+		"id":       post.ID,
+		"title":    post.Title,
+		"subtitle": post.Subtitle,
+		"cover":    post.Cover,
+		"data":     cleanData,
+	})
+}
+
+func UpdatePost(c *fiber.Ctx) error {
+	db := database.DBConn
+
+	tokenString := c.Cookies("token")
+
+	claims := models.CustomClaim{}
+
+	claims, err := claims.GetClaim(tokenString)
+	if err != nil {
+		ClearCookie(c)
+		return c.Redirect("/auth/login")
+	}
+
+	type Input struct {
+		Id       uint
+		Title    string
+		Subtitle string
+		Cover    string
+		Data     string
+	}
+
+	var input Input
+	if err := c.BodyParser(&input); err != nil {
+		return c.Redirect("/")
+	}
+
+	input.Data = utils.HTML(input.Data)
+
+	var post models.Post
+	var user models.User
+	if err := db.Where("ID = ?", input.Id).First(&post).Error; err != nil {
+		fmt.Println(err)
+	}
+	// Check if user authorized
+	if err := db.Where("ID = ?", post.UserID).First(&user).Error; err != nil {
+		fmt.Println(err)
+	}
+	if user.Username != claims.Username {
+		fmt.Println("executed2")
+		return c.Redirect(fmt.Sprintf("/post/show/%d", input.Id))
+	}
+	if err := db.Model(&post).Where("ID = ?", input.Id).Updates(input).Error; err != nil {
+		fmt.Println(err)
+	}
+
+	return c.Render("index", fiber.Map{})
 }

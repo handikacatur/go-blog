@@ -8,5 +8,5 @@ type User struct {
 	gorm.Model
 	Username string `gorm:"unique_index;not null" form:"username"`
 	Password string `form:"password"`
-	Posts    []Post `gorm:"foreignkey:UserID"`
+	Posts    []Post `gorm:"foreignkey:UserID;references:ID"`
 }

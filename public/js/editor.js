@@ -1,3 +1,29 @@
+let newData = {
+    "blocks" : []
+}
+
+if (!data) {
+    newData = {}
+} else {
+    for (let i=0; i<data.Blocks.length; i++) {
+        if (data.Blocks[i].Type === "paragraph") {
+            newData.blocks.push({
+                "type": data.Blocks[i].Type,
+                "data" : {
+                    "text": data.Blocks[i].Data.Text
+                }
+            })
+        } else {
+            newData.blocks.push({
+                "type": data.Blocks[i].Type,
+                "data" : {
+                    "file": data.Blocks[i].Data.File
+                }
+            })
+        }
+    }
+}
+
 const editor = new EditorJS({
     holder: 'editorjs',
     autofocus: true,
@@ -5,21 +31,18 @@ const editor = new EditorJS({
         image: SimpleImage,
         quote: Quote
     },
-    data: {
-        "blocks" : [
-            {
-                "type" : "paragraph",
-                "data" : {
-                    "text" : "Hey. Meet the new Editor. On this page you can see it in action — try to edit this text."
-                }
-            },
-        ]
-    }
+    data: newData
 })
 
 async function postData(data) {
+    let method
+    if (data) {
+        method = 'PUT'
+    } else {
+        method = 'POST'
+    }
     const response = await fetch('/post/my-post', {
-        method: 'POST',
+        method: method,
         body: data
     })
     if (response.status == 200) {
@@ -66,5 +89,8 @@ const publishBtn = document.querySelector('#publish')
 publishBtn.addEventListener('click', async e => {
     const outputData = await editor.save()
     formData.append('data', JSON.stringify(outputData))
+    if (data) {
+        formData.append('id', postId)
+    }
     postData(formData)
 })
