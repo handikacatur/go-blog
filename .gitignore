@@ -22,4 +22,4 @@ vendor/
 
 *.db
 
-/public/assets/img/covers/
+/public/assets/img/covers/*
