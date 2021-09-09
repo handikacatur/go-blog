@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/handikacatur/go-blog/database"
 	"github.com/handikacatur/go-blog/models"
@@ -28,11 +29,17 @@ func initDB() {
 }
 
 func main() {
+	// Create covers directory if not exist
+	_, err := os.Stat("./public/assets/img/covers")
+	if os.IsNotExist(err) {
+		os.Mkdir("./public/assets/img/covers", 0775)
+	}
+
 	// Instantiate html template engine
 	engine := html.New("./views", ".html")
 
 	// Load env vars
-	err := godotenv.Load()
+	err = godotenv.Load()
 	if err != nil {
 		log.Fatalf("Can not load env variables")
 	}
@@ -56,6 +63,10 @@ func main() {
 	router.SetHome(app)
 	router.SetAuth(app)
 	router.SetPost(app)
+
+	app.Use(func(c *fiber.Ctx) error {
+		return c.Render("404", fiber.Map{})
+	})
 
 	log.Fatal(app.Listen(":3000"))
 }
