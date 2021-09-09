@@ -54,7 +54,7 @@
                     {{range $key, $value := .posts}}
                     <!-- Post preview-->
                     <div class="post-preview">
-                        <a href="/post/show/{{$value.Id}}">
+                        <a href="/post/show/{{$value.ID}}">
                             <h2 class="post-title">{{$value.Title}}</h2>
                             <h3 class="post-subtitle">{{$value.Subtitle}}</h3>
                         </a>
@@ -67,10 +67,6 @@
                     {{end}}
                     {{else}}
                     <p class="text-center">No post yet. Go create your first post!</p>
-                    {{end}}
-                    {{if .posts}}
-                    <!-- Pager-->
-                    <div class="d-flex justify-content-end mb-4"><a class="btn btn-primary text-uppercase" href="#!">Older Posts →</a></div>
                     {{end}}
                 </div>
             </div>

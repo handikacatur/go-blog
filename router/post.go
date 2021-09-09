@@ -15,4 +15,5 @@ func SetPost(app *fiber.App) {
 	post.Put("/my-post/", middleware.Protected(), handlers.UpdatePost)
 	post.Get("/my-post/create", middleware.Protected(), handlers.GetCreatePost)
 	post.Get("/my-post/:id/edit", middleware.Protected(), handlers.GetUpdatePost)
+	post.Get("/my-post/:id/delete", middleware.Protected(), handlers.DeletePost)
 }

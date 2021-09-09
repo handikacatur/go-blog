@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 	"html/template"
+	"os"
 	"strings"
 	"time"
 
@@ -63,32 +64,26 @@ func GetMyPosts(c *fiber.Ctx) error {
 		}
 	}
 
-	var user models.User
-	if err := db.Where(&models.User{Username: claims.Username}).Preload("Posts").Find(&user).Error; err != nil {
-		return c.Redirect("/post/my-post/create")
+	type result struct {
+		ID        string
+		Title     string
+		Subtitle  string
+		CreatedAt time.Time
+		Username  string
+		Date      string
+	}
+	var posts []result
+	if err := db.Table("posts").Select("posts.id, posts.title, posts.subtitle, posts.created_at, users.username").Joins("left join users on posts.user_id = users.id").Where("users.username = ?", claims.Username).Scan(&posts).Error; err != nil {
+		return err
 	}
 
-	type PostData struct {
-		Id       uint
-		Title    string
-		Subtitle string
-		Date     string
-	}
-
-	postData := make([]PostData, len(user.Posts))
-
-	for i := range postData {
-		t := user.Posts[i].CreatedAt
-		dt := t.Format("January 2, 2006")
-		postData[i].Id = user.Posts[i].ID
-		postData[i].Title = user.Posts[i].Title
-		postData[i].Subtitle = user.Posts[i].Subtitle
-		postData[i].Date = dt
+	for i := range posts {
+		posts[i].Date = posts[i].CreatedAt.Format("January 2, 2006")
 	}
 
 	return c.Render("my_post", fiber.Map{
 		"username": claims.Username,
-		"posts":    postData,
+		"posts":    posts,
 	})
 }
 
@@ -203,8 +198,8 @@ func CreatePost(c *fiber.Ctx) error {
 	post.UserID = user.ID
 
 	db := database.DBConn
-
 	db.Create(post)
+
 	return c.Redirect("/")
 }
 
@@ -224,17 +219,20 @@ func GetUpdatePost(c *fiber.Ctx) error {
 	// Get request parameter
 	reqId := c.Params("id")
 
-	var post models.Post
-	var user models.User
-	if err := db.Where("ID = ?", reqId).First(&post).Error; err != nil {
-		fmt.Println(err)
+	type result struct {
+		ID       string
+		Title    string
+		Subtitle string
+		Cover    string
+		Data     string
+		Username string
+	}
+	var post result
+	if err := db.Table("posts").Select("posts.id, posts.title, posts.cover, posts.data, users.username").Joins("left join users on posts.user_id = users.id").Where("posts.id = ?", reqId).First(&post).Error; err != nil {
+		return err
 	}
 
-	if err := db.Where("ID = ?", post.UserID).First(&user).Error; err != nil {
-		fmt.Println(err)
-	}
-
-	if claims.Username != user.Username {
+	if claims.Username != post.Username {
 		return c.Redirect(fmt.Sprintf("/post/show/%s", reqId))
 	}
 
@@ -262,37 +260,98 @@ func UpdatePost(c *fiber.Ctx) error {
 		return c.Redirect("/auth/login")
 	}
 
+	file, _ := c.FormFile("cover")
+
 	type Input struct {
-		Id       uint
+		ID       uint
 		Title    string
 		Subtitle string
 		Cover    string
 		Data     string
 	}
-
 	var input Input
+
 	if err := c.BodyParser(&input); err != nil {
-		return c.Redirect("/")
+		return err
 	}
 
 	input.Data = utils.HTML(input.Data)
 
-	var post models.Post
-	var user models.User
-	if err := db.Where("ID = ?", input.Id).First(&post).Error; err != nil {
-		fmt.Println(err)
+	// Get id and username from requested post
+	type result struct {
+		ID       string
+		Username string
+		Cover    string
 	}
-	// Check if user authorized
-	if err := db.Where("ID = ?", post.UserID).First(&user).Error; err != nil {
-		fmt.Println(err)
-	}
-	if user.Username != claims.Username {
-		fmt.Println("executed2")
-		return c.Redirect(fmt.Sprintf("/post/show/%d", input.Id))
-	}
-	if err := db.Model(&post).Where("ID = ?", input.Id).Updates(input).Error; err != nil {
-		fmt.Println(err)
+	var post result
+	if err := db.Table("posts").Select("posts.id, users.username, posts.cover").Joins("left join users on posts.user_id = users.id").Where("posts.id = ?", input.ID).First(&post).Error; err != nil {
+		return err
 	}
 
-	return c.Render("index", fiber.Map{})
+	// Check file content type
+	if file != nil {
+		if strings.Contains(file.Header["Content-Type"][0], "image/") {
+			user, _ := GetUserByUsername(claims.Username)
+
+			// Rename and upload image file
+			date := strings.ReplaceAll(time.Now().Format("01-02-20006"), "-", "")
+			ids := fmt.Sprintf("%d%d", user.ID, time.Now().Unix())
+			file.Filename = fmt.Sprintf("%s-%s-%s.%s", date, ids, user.Username, file.Header["Content-Type"][0][6:])
+			// Delete last cover
+			os.Remove(fmt.Sprintf("./public/assets/img/covers/%s", post.Cover))
+			// Save file to /public/assets/img/covers
+			if err := c.SaveFile(file, fmt.Sprintf("./public/assets/img/covers/%s", file.Filename)); err != nil {
+				return err
+			}
+			input.Cover = file.Filename
+		}
+	}
+
+	// Check if client is authorized
+	if post.Username != claims.Username {
+		return c.Redirect(fmt.Sprintf("/post/show/%s", post.ID))
+	}
+
+	// Update the post
+	if err := db.Model(&models.Post{}).Where("ID = ?", post.ID).Updates(input).Error; err != nil {
+		return err
+	}
+
+	return c.SendStatus(200)
+}
+
+func DeletePost(c *fiber.Ctx) error {
+	db := database.DBConn
+
+	tokenString := c.Cookies("token")
+
+	claims := models.CustomClaim{}
+
+	claims, err := claims.GetClaim(tokenString)
+	if err != nil {
+		ClearCookie(c)
+		return c.Redirect("/auth/login")
+	}
+
+	reqId := c.Params("id")
+
+	type result struct {
+		ID       string
+		Username string
+		Cover    string
+	}
+	var post result
+	if err := db.Table("posts").Select("posts.id, users.username, posts.cover").Joins("left join users on posts.user_id = users.id").Where("posts.id = ?", reqId).Scan(&post).Error; err != nil {
+		return err
+	}
+
+	if post.Username != claims.Username {
+		fmt.Println("executed")
+		return c.Redirect(fmt.Sprintf("/post/show/%s", reqId))
+	}
+
+	db.Unscoped().Delete(&models.Post{}, reqId)
+	os.Remove(fmt.Sprintf("./public/assets/img/covers/%s", post.Cover))
+
+	return c.Redirect("/post/my-post")
 }

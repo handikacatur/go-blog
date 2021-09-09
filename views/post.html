@@ -60,7 +60,7 @@
                 </div>
                 {{if .authorized}}
                 <div class="d-flex flex-end flex-row-reverse" style="margin-top: 100px;">
-                    <a class="btn bg-danger text-white mx-2">Delete post</a>
+                    <a class="btn bg-danger text-white mx-2" href="/post/my-post/{{.id}}/delete">Delete post</a>
                     <a class="btn bg-success text-white mx-2" href="/post/my-post/{{.id}}/edit">Edit post</a>
                 </div>
                 {{end}}
