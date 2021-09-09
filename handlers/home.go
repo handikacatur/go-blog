@@ -1,6 +1,9 @@
 package handlers
 
 import (
+	"fmt"
+	"time"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/handikacatur/go-blog/database"
 	"github.com/handikacatur/go-blog/models"
@@ -17,38 +20,28 @@ func GetHome(c *fiber.Ctx) error {
 		claims, _ = claims.GetClaim(tokenString)
 	}
 
-	var post models.Post
-	if err := db.Find(&post).Error; err != nil {
-		return err
+	// var user modelse.User
+	type result struct {
+		Id        string
+		Title     string
+		Subtitle  string
+		CreatedAt time.Time
+		Username  string
+		Date      string
 	}
 
-	var user models.User
-	if err := db.Where(&models.User{Username: claims.Username}).Preload("Posts").Find(&user).Error; err != nil {
-		return c.Redirect("/post/my-post/create")
+	var posts []result
+
+	if err := db.Table("posts").Select("posts.id, posts.title, posts.subtitle, posts.created_at, users.username").Joins("left join users on posts.user_id = users.id").Order("posts.created_at desc").Scan(&posts).Error; err != nil {
+		fmt.Println(err)
 	}
 
-	// type PostData struct {
-	// 	Id       uint
-	// 	Title    string
-	// 	Subtitle string
-	// 	Date     string
-	// }
-
-	// postData := make([]PostData, len(post.))
-
-	// for i := range postData {
-	// 	t := user.Posts[i].CreatedAt
-	// 	dt := t.Format("January 2, 2006")
-	// 	postData[i].Id = user.Posts[i].ID
-	// 	postData[i].Title = user.Posts[i].Title
-	// 	postData[i].Subtitle = user.Posts[i].Subtitle
-	// 	postData[i].Date = dt
-	// }
-
-	// fmt.Println(len(post))
+	for i := range posts {
+		posts[i].Date = posts[i].CreatedAt.Format("January 2, 2006")
+	}
 
 	return c.Render("index", fiber.Map{
 		"username": claims.Username,
-		"posts":    "hello wor",
+		"posts":    posts,
 	})
 }

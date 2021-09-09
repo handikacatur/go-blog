@@ -34,13 +34,7 @@ const editor = new EditorJS({
     data: newData
 })
 
-async function postData(data) {
-    let method
-    if (data) {
-        method = 'PUT'
-    } else {
-        method = 'POST'
-    }
+async function postData(data, method) {
     const response = await fetch('/post/my-post', {
         method: method,
         body: data
@@ -91,6 +85,8 @@ publishBtn.addEventListener('click', async e => {
     formData.append('data', JSON.stringify(outputData))
     if (data) {
         formData.append('id', postId)
+        postData(formData, "PUT")
+    } else {
+        postData(formData, "POST")
     }
-    postData(formData)
 })

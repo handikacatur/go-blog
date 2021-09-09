@@ -96,47 +96,50 @@ func GetPost(c *fiber.Ctx) error {
 	db := database.DBConn
 
 	tokenString := c.Cookies("token")
-
 	claims := models.CustomClaim{}
+	var err error
 
-	claims, err := claims.GetClaim(tokenString)
-	if err != nil {
-		ClearCookie(c)
-		return c.Redirect("/auth/login")
+	if len(tokenString) > 0 {
+		claims, err = claims.GetClaim(tokenString)
+		if err != nil {
+			ClearCookie(c)
+			return c.Redirect("/auth/login")
+		}
 	}
 
 	// Get parameter
 	reqId := c.Params("id")
 
-	var post models.Post
-	var user models.User
-	if err := db.First(&post, reqId).Error; err != nil {
-		return c.SendStatus(fiber.StatusNotFound)
+	type result struct {
+		ID        string
+		Title     string
+		Subtitle  string
+		Cover     string
+		Username  string
+		CreatedAt time.Time
+		Data      string
+	}
+	var post result
+	err = db.Table("posts").Select("posts.id, posts.title, posts.subtitle, posts.cover, users.username, posts.created_at, posts.data").Joins("left join users on posts.user_id = users.id").First(&post, reqId).Error
+	if err != nil {
+		return err
 	}
 
-	// if err := db.Model(&user).Where("Username = ", post.UserID).Association("Posts").Find(&post); err != nil {
-	// 	fmt.Println(err)
-	// }
-
-	if err := db.Select("Username").Where("ID = ?", post.UserID).Find(&user).Error; err != nil {
-		return c.SendStatus(fiber.StatusUnauthorized)
-	}
-
+	// Check if the user is authorized
 	var authorized bool
-	if user.Username != claims.Username {
+	if post.Username == claims.Username {
 		authorized = true
 	}
 
 	// Change date format to January 2, 2006
-	t := post.CreatedAt
-	formatDate := t.Format("January 2, 2006")
+	formatDate := post.CreatedAt.Format("January 2, 2006")
 
 	return c.Render("post", fiber.Map{
 		"id":         post.ID,
 		"title":      post.Title,
 		"subtitle":   post.Subtitle,
 		"cover":      post.Cover,
-		"author":     claims.Username,
+		"author":     post.Username,
 		"date":       formatDate,
 		"data":       template.HTML(post.Data),
 		"authorized": authorized,

@@ -9,7 +9,7 @@ import (
 func SetPost(app *fiber.App) {
 	post := app.Group("/post")
 
-	post.Get("/show/:id", middleware.Protected(), handlers.GetPost)
+	post.Get("/show/:id", handlers.GetPost)
 	post.Get("/my-post", middleware.Protected(), handlers.GetMyPosts)
 	post.Post("/my-post", middleware.Protected(), handlers.CreatePost)
 	post.Put("/my-post/", middleware.Protected(), handlers.UpdatePost)
