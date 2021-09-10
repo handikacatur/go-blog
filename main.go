@@ -68,5 +68,5 @@ func main() {
 		return c.Render("404", fiber.Map{})
 	})
 
-	log.Fatal(app.Listen(":3000"))
+	log.Fatal(app.Listen(":" + os.Getenv("PORT")))
 }
