@@ -17,7 +17,7 @@ if (!data) {
             newData.blocks.push({
                 "type": data.Blocks[i].Type,
                 "data" : {
-                    "file": data.Blocks[i].Data.File
+                    "url": data.Blocks[i].Data.Url
                 }
             })
         }

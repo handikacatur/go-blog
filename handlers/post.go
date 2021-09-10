@@ -15,7 +15,7 @@ import (
 
 type Data struct {
 	Text string
-	File string
+	Url  string
 }
 
 type Block struct {
@@ -27,7 +27,7 @@ type CleanData struct {
 	Blocks []Block
 }
 
-func htmlToClean(data string) CleanData {
+func htmlToClean(data string, c *fiber.Ctx) CleanData {
 	splitData := strings.Split(data, "\n")
 	cleanData := new(CleanData)
 	for _, data := range splitData {
@@ -37,7 +37,7 @@ func htmlToClean(data string) CleanData {
 			cleanData.Blocks = append(cleanData.Blocks, newBlock)
 		} else if strings.Contains(data, "<img") {
 			src := strings.Split(data, " ")[1]
-			newData := Data{File: src[5 : len(src)-1]}
+			newData := Data{Url: src[5 : len(src)-1]}
 			newBlock := Block{Type: "image", Data: newData}
 			cleanData.Blocks = append(cleanData.Blocks, newBlock)
 		}
@@ -236,7 +236,7 @@ func GetUpdatePost(c *fiber.Ctx) error {
 		return c.Redirect(fmt.Sprintf("/post/show/%s", reqId))
 	}
 
-	cleanData := htmlToClean(post.Data)
+	cleanData := htmlToClean(post.Data, c)
 
 	return c.Render("create_post", fiber.Map{
 		"id":       post.ID,
@@ -346,7 +346,6 @@ func DeletePost(c *fiber.Ctx) error {
 	}
 
 	if post.Username != claims.Username {
-		fmt.Println("executed")
 		return c.Redirect(fmt.Sprintf("/post/show/%s", reqId))
 	}
 
